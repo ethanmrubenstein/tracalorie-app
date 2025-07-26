@@ -1,0 +1,44 @@
+*,
+*::after,
+*::before {
+  box-sizing: border-box;
+}
+
+:root {
+  --calorie-value: 0%;
+}
+
+.hidden {
+  display: none;
+} /*# sourceMappingURL=style.css.map */
+
+@keyframes load {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: var(--calorie-value);
+  }
+}
+
+/* TODO: Fix this animation to look better */
+@keyframes error {
+  0% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(50deg);
+  }
+  40% {
+    transform: rotate(-50deg);
+  }
+  60% {
+    transform: rotate(20deg);
+  }
+  80% {
+    transform: rotate(-20deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
