@@ -3,7 +3,7 @@ class CalorieTracker {
     this._calorieLimit = Storage.getCalorieLimit();
     this._totalCalories = Storage.getTotalCalories();
     this._meals = Storage.getMeals();
-    this._workouts = [];
+    this._workouts = Storage.getWorkouts();
 
     this._displayCaloriesLimit();
     this._displayCaloriesTotal();
@@ -13,6 +13,8 @@ class CalorieTracker {
     this._displayCaloriesProgress();
     this._displayMealMessage();
     this._displayWorkoutMessage();
+
+    document.getElementById("limit").value = this._calorieLimit;
   }
 
   // Public Methods/API //
@@ -30,6 +32,7 @@ class CalorieTracker {
     this._workouts.push(workout);
     this._totalCalories -= workout.calories;
     Storage.setTotalCalories(this._totalCalories);
+    Storage.setWorkout(workout);
     this._displayNewWorkout(workout);
 
     this._render();
@@ -42,6 +45,7 @@ class CalorieTracker {
       this._totalCalories -= meal.calories;
       Storage.setTotalCalories(this._totalCalories);
       this._meals.splice(index, 1);
+      Storage.removeMeal(id);
       this._render();
     }
   }
@@ -53,6 +57,7 @@ class CalorieTracker {
       this._totalCalories += workout.calories;
       Storage.setTotalCalories(this._totalCalories);
       this._workouts.splice(index, 1);
+      Storage.removeWorkout(id);
       this._render();
     }
   }
@@ -61,6 +66,7 @@ class CalorieTracker {
     this._totalCalories = 0;
     this._meals = [];
     this._workouts = [];
+    Storage.clearAll();
     this._render();
   }
 
@@ -73,6 +79,7 @@ class CalorieTracker {
 
   loadItems() {
     this._meals.forEach((meal) => this._displayNewMeal(meal));
+    this._workouts.forEach((workout) => this._displayNewWorkout(workout));
   }
 
   // Private Methods //
@@ -190,23 +197,37 @@ class CalorieTracker {
     workoutsEl.appendChild(workoutEl);
   }
 
-  _displayMealMessage(message) {
+  _displayMealMessage() {
     const mealMessageEl = document.getElementById("meal-message");
-    // TODO: Add a message when no search results show up from the filter
+    const filterEl = document.getElementById("filter-meals");
     if (this._meals.length === 0) {
       mealMessageEl.innerHTML = "You have no meals for today";
+      filterEl.disabled = true;
+      filterEl.value = "";
+      filterEl.placeholder = "No meals to filter...";
+      filterEl.style.cursor = "not-allowed";
     } else {
       mealMessageEl.innerHTML = "";
+      filterEl.disabled = false;
+      filterEl.placeholder = "Filter Meals...";
+      filterEl.style.cursor = "text";
     }
   }
 
-  _displayWorkoutMessage(message) {
+  _displayWorkoutMessage() {
     const workoutMessageEl = document.getElementById("workout-message");
-    // TODO: Add a message when no search results show up from the filter
+    const filterEl = document.getElementById("filter-workouts");
     if (this._workouts.length === 0) {
       workoutMessageEl.innerHTML = "You have no workouts for today";
+      filterEl.disabled = true;
+      filterEl.value = "";
+      filterEl.placeholder = "No workouts to filter...";
+      filterEl.style.cursor = "not-allowed";
     } else {
       workoutMessageEl.innerHTML = "";
+      filterEl.disabled = false;
+      filterEl.placeholder = "Filter Workouts...";
+      filterEl.style.cursor = "text";
     }
   }
 
@@ -284,6 +305,48 @@ class Storage {
     const meals = Storage.getMeals();
     meals.push(meal);
     localStorage.setItem("meals", JSON.stringify(meals));
+  }
+
+  static removeMeal(id) {
+    const meals = Storage.getMeals();
+    meals.forEach((meal, index) => {
+      if (meal.id === id) {
+        meals.splice(index, 1);
+      }
+    });
+    localStorage.setItem("meals", JSON.stringify(meals));
+  }
+
+  // Workouts //
+  static getWorkouts() {
+    let workouts;
+    if (localStorage.getItem("workouts") === null) {
+      workouts = [];
+    } else {
+      workouts = JSON.parse(localStorage.getItem("workouts"));
+    }
+    return workouts;
+  }
+
+  static setWorkout(workout) {
+    const workouts = Storage.getWorkouts();
+    workouts.push(workout);
+    localStorage.setItem("workouts", JSON.stringify(workouts));
+  }
+
+  static removeWorkout(id) {
+    const workouts = Storage.getWorkouts();
+    workouts.forEach((workout, index) => {
+      if (workout.id === id) {
+        workouts.splice(index, 1);
+      }
+    });
+    localStorage.setItem("workouts", JSON.stringify(workouts));
+  }
+
+  // Clear ALl //
+  static clearAll() {
+    localStorage.clear();
   }
 }
 
@@ -372,24 +435,42 @@ class App {
 
   _filterItems(type, e) {
     const text = e.target.value.toLowerCase();
+    let visibleCount = 0;
     document.querySelectorAll(`#${type}-items .card`).forEach((item) => {
       const name = item.firstElementChild.firstElementChild.textContent;
       if (name.toLowerCase().indexOf(text) !== -1) {
         item.style.display = "block";
+        visibleCount++;
       } else {
         item.style.display = "none";
       }
     });
+
+    if (visibleCount === 0) {
+      document.getElementById(
+        `${type}-message`
+      ).innerHTML = `No ${type}s found with "${text}"`;
+    } else {
+      document.getElementById(`${type}-message`).innerHTML = "";
+    }
   }
 
   _reset() {
-    this._tracker.reset();
-    // TODO: Put the meal and workout messages back after clearing meal and workout items.
-    // clearing meal-items and workout-items also removes the meal-message and workout-message elements
-    document.getElementById("meal-items").innerHTML = "";
-    document.getElementById("workout-items").innerHTML = "";
-    document.getElementById("filter-meals").value = "";
-    document.getElementById("filter-workouts").value = "";
+    if (
+      confirm(
+        "Are you sure you want to reset your tracker? This will clear all meals and workouts."
+      )
+    ) {
+      this._tracker.reset();
+      document.getElementById(
+        "meal-items"
+      ).innerHTML = `<p id="meal-message" class="text-center">You have no meals for today</p>`;
+      document.getElementById(
+        "workout-items"
+      ).innerHTML = `<p id="workout-message" class="text-center">You have no workouts for today</p>`;
+      document.getElementById("filter-meals").value = "";
+      document.getElementById("filter-workouts").value = "";
+    }
   }
 
   _setLimit(e) {
